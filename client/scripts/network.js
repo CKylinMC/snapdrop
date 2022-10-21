@@ -55,11 +55,11 @@ class ServerConnection {
     }
 
     _endpoint() {
-        const localaddress = new URL("http://localhost:3000");
+        // const localaddress = new URL("http://localhost:3000");
         // hack to detect if deployment or development environment
         const protocol = location.protocol.startsWith('https') ? 'wss' : 'ws';
         const webrtc = window.isRtcSupported ? '/webrtc' : '/fallback';
-        const url = protocol + '://' + localaddress.host + localaddress.pathname + 'server' + webrtc;
+        const url = protocol + '://' + location.host + location.pathname + 'server' + webrtc;
         return url;
     }
 
