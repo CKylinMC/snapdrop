@@ -9,7 +9,7 @@ window.iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 Events.on('display-name', e => {
     const me = e.detail.message;
     const $displayName = $('displayName')
-    $displayName.textContent = 'You are known as ' + me.displayName;
+    $displayName.textContent = '你的昵称是: ' + me.displayName;
     $displayName.title = me.deviceName;
 });
 
@@ -348,6 +348,44 @@ class SendTextDialog extends Dialog {
     }
 }
 
+
+class ChangeNameDialog extends Dialog {
+    constructor() {
+        super('changeNameDialog');
+        Events.on('change-name-prompt', _ => this._onChangeName())
+        this.$text = this.$el.querySelector('#textInput');
+        const button = this.$el.querySelector('form');
+        button.addEventListener('submit', e => this._send(e));
+    }
+
+    _onChangeName() {
+        this._handleChangeName();
+        this.show();
+
+        const range = document.createRange();
+        const sel = window.getSelection();
+
+        range.selectNodeContents(this.$text);
+        sel.removeAllRanges();
+        sel.addRange(range);
+
+    }
+
+    _handleChangeName() {
+        if (!window.nickname) return;
+        this.$text.textContent = window.nickname;
+        window.nickname = '';
+    }
+
+    _send(e) {
+        e.preventDefault();
+        Events.fire('change-nick', {
+            type: 'change-name',
+            nick: this.$text.innerText
+        });
+    }
+}
+
 class ReceiveTextDialog extends Dialog {
     constructor() {
         super('receiveTextDialog');
@@ -375,7 +413,7 @@ class ReceiveTextDialog extends Dialog {
 
     async _onCopy() {
         await navigator.clipboard.writeText(this.$text.textContent);
-        Events.fire('notify-user', 'Copied to clipboard');
+        Events.fire('notify-user', '已复制到剪贴板');
     }
 }
 
@@ -415,7 +453,7 @@ class Notifications {
                 Events.fire('notify-user', Notifications.PERMISSION_ERROR || 'Error');
                 return;
             }
-            this._notify('Even more snappy sharing!');
+            this._notify('分享更多内容！');
             this.$button.setAttribute('hidden', 1);
         });
     }
@@ -449,10 +487,10 @@ class Notifications {
     _messageNotification(message) {
         if (document.visibilityState !== 'visible') {
             if (isURL(message)) {
-                const notification = this._notify(message, 'Click to open link');
+                const notification = this._notify(message, '点击打开链接');
                 this._bind(notification, e => window.open(message, '_blank', null, true));
             } else {
-                const notification = this._notify(message, 'Click to copy text');
+                const notification = this._notify(message, '点击复制文本');
                 this._bind(notification, e => this._copyText(message, notification));
             }
         }
@@ -460,7 +498,7 @@ class Notifications {
 
     _downloadNotification(message) {
         if (document.visibilityState !== 'visible') {
-            const notification = this._notify(message, 'Click to download');
+            const notification = this._notify(message, '点击下载');
             if (!window.isDownloadSupported) return;
             this._bind(notification, e => this._download(notification));
         }
@@ -474,7 +512,7 @@ class Notifications {
     _copyText(message, notification) {
         notification.close();
         if (!navigator.clipboard.writeText(message)) return;
-        this._notify('Copied text to clipboard');
+        this._notify('文字已复制到剪贴板');
     }
 
     _bind(notification, handler) {
@@ -498,11 +536,11 @@ class NetworkStatusUI {
     }
 
     _showOfflineMessage() {
-        Events.fire('notify-user', 'You are offline');
+        Events.fire('notify-user', '你已离线');
     }
 
     _showOnlineMessage() {
-        Events.fire('notify-user', 'You are back online');
+        Events.fire('notify-user', '你已重新连接');
     }
 }
 
@@ -534,6 +572,7 @@ class Snapdrop {
         Events.on('load', e => {
             const receiveDialog = new ReceiveDialog();
             const sendTextDialog = new SendTextDialog();
+            const changeNameDialog = new ChangeNameDialog();
             const receiveTextDialog = new ReceiveTextDialog();
             const toast = new Toast();
             const notifications = new Notifications();
@@ -632,10 +671,10 @@ Events.on('load', () => {
 });
 
 Notifications.PERMISSION_ERROR = `
-Notifications permission has been blocked
-as the user has dismissed the permission prompt several times.
-This can be reset in Page Info
-which can be accessed by clicking the lock icon next to the URL.`;
+通知权限已被阻止
+因为用户多次取消了许可提示。
+这可以在页面信息中重置
+可以通过点击URL旁边的锁定图标来访问。`;
 
 document.body.onclick = e => { // safari hack to fix audio
     document.body.onclick = null;

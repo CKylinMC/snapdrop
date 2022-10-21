@@ -61,6 +61,30 @@ class SnapdropServer {
             case 'disconnect':
                 this._leaveRoom(sender);
                 break;
+            case 'change-name':
+                message.nick = message.nick.trim();
+                if (message.nick.length==0||message.nick.length>20||/[\\\!\@\#\$\%\^\&\*\(\)\.\`\~\|\/\[\]\{\}\=\+\-\_\;\'\"\,\<\>\?\n\r]/g.test(message.nick)) {
+                    break;
+                }
+                sender._setDisplayName(message.nick);
+                this._send(sender, {
+                    type: 'display-name',
+                    message: {
+                        displayName: sender.name.displayName,
+                        deviceName: sender.name.deviceName
+                    }
+                });
+                
+                for (const otherPeerId in this._rooms[sender.ip]) {
+                    if (otherPeerId == sender.id) continue;
+                    const otherPeer = this._rooms[sender.ip][otherPeerId];
+                    this._send(otherPeer, { type: 'peer-left', peerId: sender.id });
+                    this._send(otherPeer, {
+                        type: 'peer-joined',
+                        peer: sender.getInfo()
+                    });
+                }
+                break;
             case 'pong':
                 sender.lastBeat = Date.now();
                 break;
@@ -166,6 +190,7 @@ class Peer {
         // set socket
         this.socket = socket;
 
+        this.rdid = Math.floor(Math.random() * 10000);
 
         // set remote ip
         this._setIP(request);
@@ -179,6 +204,11 @@ class Peer {
         // for keepalive
         this.timerId = 0;
         this.lastBeat = Date.now();
+    }
+
+    _setDisplayName(name) {
+        const newName = name+"#"+this.rdid;
+        this.name.displayName = newName;
     }
 
     _setIP(request) {
@@ -222,7 +252,7 @@ class Peer {
         }
 
         if(!deviceName)
-            deviceName = 'Unknown Device';
+            deviceName = '未知设备';
 
         const displayName = uniqueNamesGenerator({
             length: 2,
@@ -230,7 +260,7 @@ class Peer {
             dictionaries: [colors, animals],
             style: 'capital',
             seed: this.id.hashCode()
-        })
+        }) + "#" + this.rdid;
 
         this.name = {
             model: ua.device.model,

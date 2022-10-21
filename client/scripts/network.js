@@ -55,10 +55,11 @@ class ServerConnection {
     }
 
     _endpoint() {
+        const localaddress = new URL("http://localhost:3000");
         // hack to detect if deployment or development environment
         const protocol = location.protocol.startsWith('https') ? 'wss' : 'ws';
         const webrtc = window.isRtcSupported ? '/webrtc' : '/fallback';
-        const url = protocol + '://' + location.host + location.pathname + 'server' + webrtc;
+        const url = protocol + '://' + localaddress.host + localaddress.pathname + 'server' + webrtc;
         return url;
     }
 
@@ -212,7 +213,7 @@ class Peer {
         this._reader = null;
         this._busy = false;
         this._dequeueFile();
-        Events.fire('notify-user', 'File transfer completed.');
+        Events.fire('notify-user', '文件传输完成.');
     }
 
     sendText(text) {
@@ -368,7 +369,13 @@ class PeersManager {
         Events.on('peers', e => this._onPeers(e.detail));
         Events.on('files-selected', e => this._onFilesSelected(e.detail));
         Events.on('send-text', e => this._onSendText(e.detail));
+        Events.on('change-nick', e => this._changeName(e.detail));
         Events.on('peer-left', e => this._onPeerLeft(e.detail));
+    }
+
+    _changeName(message) {
+        console.log(message);
+        this._server.send(message);
     }
 
     _onMessage(message) {
@@ -522,6 +529,6 @@ class Events {
 RTCPeer.config = {
     'sdpSemantics': 'unified-plan',
     'iceServers': [{
-        urls: 'stun:stun.l.google.com:19302'
+        urls: 'stun:stunserver.org'
     }]
 }
