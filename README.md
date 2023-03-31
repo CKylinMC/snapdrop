@@ -2,6 +2,14 @@
 
 [Snapdrop](https://snapdrop.net): local file sharing in your browser. Inspired by Apple's Airdrop.
 
+---
+
+## Changes between this repo and original repo
+
+* Translated to Chinese
+* Allow user to change their name
+
+---
 
 #### Snapdrop is built with the following awesome technologies:
 * Vanilla HTML5 / ES6 / CSS3 frontend
